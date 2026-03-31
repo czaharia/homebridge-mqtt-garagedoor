@@ -112,16 +112,28 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
     switch (topic) {
       case this.getCurrentTopic():
         {
-          const value = this.mapCurrentDoorState(stringValue);
+          let stateString = stringValue;
+          try {
+            const json = JSON.parse(stringValue) as { valid: boolean; doorstate: string };
+            if (json.valid === true && typeof json.doorstate === 'string') {
+              stateString = json.doorstate;
+            } else {
+              this.log.warn('invalid or missing doorstate in payload: ', stringValue);
+              break;
+            }
+          } catch (e) {
+            this.log.warn('failed to parse JSON payload: ', stringValue);
+            break;
+          }
+          const value = this.mapCurrentDoorState(stateString);
           if (value >= 0) {
             this.garageAccessory?.setCurrentDoorState(value);
             this.log.debug('did update current state to: ', value);
-
           } else {
-            this.log.error('unknown door state value ', value, ' for payload: ', stringValue);
+            this.log.error('unknown door state value ', value, ' for payload: ', stateString);
           }
+          break;
         }
-        break;
 
       case this.getTargetTopic():
       {
