@@ -1,5 +1,5 @@
 {
-  "private": true,
+  "private": false,
   "displayName": "MQTT garage door opener",
   "name": "homebridge-garagedoor-mqtt-czaharia",
   "version": "2.1.0",
