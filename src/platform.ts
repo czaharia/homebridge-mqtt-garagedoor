@@ -199,20 +199,20 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
 
   mapCurrentDoorState(value: string): number {
     switch (value) {
-      case 'open':    return this.Characteristic.CurrentDoorState.OPEN;
-      case 'closed':  return this.Characteristic.CurrentDoorState.CLOSED;
+      case 'open': return this.Characteristic.CurrentDoorState.OPEN;
+      case 'closed': return this.Characteristic.CurrentDoorState.CLOSED;
       case 'opening': return this.Characteristic.CurrentDoorState.OPENING;
       case 'closing': return this.Characteristic.CurrentDoorState.CLOSING;
       case 'stopped': return this.Characteristic.CurrentDoorState.STOPPED;
-      default:        return -1;
+      default: return -1;
     }
   }
 
   mapTargetDoorState(value: string): number {
     switch (value) {
-      case 'open':  return this.Characteristic.TargetDoorState.OPEN;
+      case 'open': return this.Characteristic.TargetDoorState.OPEN;
       case 'close': return this.Characteristic.TargetDoorState.CLOSED;
-      default:      return -1;
+      default: return -1;
     }
   }
 
