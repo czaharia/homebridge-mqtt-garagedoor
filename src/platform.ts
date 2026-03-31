@@ -197,43 +197,28 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
     }
   }
 
-  mapCurrentDoorState(value: string): number {
-    switch (value) {
-      case '0':
-        return this.Characteristic.CurrentDoorState.OPEN;
+	mapCurrentDoorState(value: string): number {
+	  switch (value) {
+	    case 'open':    return this.Characteristic.CurrentDoorState.OPEN;
+	    case 'closed':  return this.Characteristic.CurrentDoorState.CLOSED;
+	    case 'opening': return this.Characteristic.CurrentDoorState.OPENING;
+	    case 'closing': return this.Characteristic.CurrentDoorState.CLOSING;
+	    case 'stopped': return this.Characteristic.CurrentDoorState.STOPPED;
+	    default:        return -1;
+	  }
+	}
 
-      case '1':
-        return this.Characteristic.CurrentDoorState.CLOSED;
+	mapTargetDoorState(value: string): number {
+	  switch (value) {
+	    case 'open':  return this.Characteristic.TargetDoorState.OPEN;
+	    case 'close': return this.Characteristic.TargetDoorState.CLOSED;
+	    default:      return -1;
+	  }
+	}
 
-      case '2':
-        return this.Characteristic.CurrentDoorState.OPENING;
-
-      case '3':
-        return this.Characteristic.CurrentDoorState.CLOSING;
-
-      case '4':
-        return this.Characteristic.CurrentDoorState.STOPPED;
-
-      default:
-        return -1;
-    }
-  }
-
-  mapTargetDoorState(value: string): number {
-    switch (value) {
-      case '0':
-        return this.Characteristic.TargetDoorState.OPEN;
-
-      case '1':
-        return this.Characteristic.TargetDoorState.CLOSED;
-
-      default:
-        return -1;
-    }
-  }
-
-  publishTargetDoorState(value: number) {
-    this.log.debug('publishing target door state: ', value, ' to topic: ', this.getTargetTopic());
-    this.garageClient?.publishValue(this.getTargetTopic(), value);
-  }
+	publishTargetDoorState(value: number) {
+		const payload = value === this.Characteristic.TargetDoorState.OPEN ? 'open' : 'close';
+		this.log.debug('publishing target door state: ', payload, ' to topic: ', this.getTargetTopic());
+		this.garageClient?.publishValue(this.getTargetTopic(), payload);
+	}
 }
