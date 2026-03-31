@@ -111,29 +111,33 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
     this.log.debug('received topic: ', topic, 'payload: ', stringValue);
     switch (topic) {
       case this.getCurrentTopic():
-        {
-          let stateString = stringValue;
-          try {
-            const json = JSON.parse(stringValue) as { valid: boolean; doorstate: string };
-            if (json.valid === true && typeof json.doorstate === 'string') {
-              stateString = json.doorstate;
-            } else {
-              this.log.warn('invalid or missing doorstate in payload: ', stringValue);
-              break;
+      {
+        let stateString = stringValue;
+        try {
+          const json = JSON.parse(stringValue) as { valid: boolean; doorstate: string; detailedState: string };
+          if (json.valid === true && typeof json.doorstate === 'string') {
+            stateString = json.doorstate;
+            if (json.detailedState === 'stopped') {
+              this.log.info('Door stopped');
+              this.garageAccessory?.updateTargetDoorStateWithoutPublishing(this.Characteristic.TargetDoorState.OPEN);
             }
-          } catch (e) {
-            this.log.warn('failed to parse JSON payload: ', stringValue);
+          } else {
+            this.log.warn('GetCurrent topic: invalid or missing doorstate in payload: ', stringValue);
             break;
           }
-          const value = this.mapCurrentDoorState(stateString);
-          if (value >= 0) {
-            this.garageAccessory?.setCurrentDoorState(value);
-            this.log.debug('did update current state to: ', value);
-          } else {
-            this.log.error('unknown door state value ', value, ' for payload: ', stateString);
-          }
+        } catch (e) {
+          this.log.warn('GetCurrent topic: failed to parse JSON payload: ', stringValue);
           break;
         }
+        const value = this.mapCurrentDoorState(stateString);
+        if (value >= 0) {
+          this.garageAccessory?.setCurrentDoorState(value);
+          this.log.debug('did update current state to: ', value);
+        } else {
+          this.log.error('GetCurrent topic: unknown door state value ', value, ' for payload: ', stateString);
+        }
+        break;
+      }
 
       case this.getTargetTopic():
       {
@@ -142,7 +146,7 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
           this.garageAccessory?.updateTargetDoorStateWithoutPublishing(value);
           this.log.debug('did update target state to:', value);
         } else {
-          this.log.error('unknown door state value ', value, ' for payload: ', stringValue);
+          this.log.error('GetTarget topic: unknown door state value ', value, ' for payload: ', stringValue);
         }
         break;
       }
@@ -162,7 +166,7 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
     this.log.debug('initializing Garage Door Opener Accessory...');
 
     const deviceID = 'GDC01';
-    const deviceDisplayName = 'Garage Door';
+    const deviceDisplayName = (this.config['displayName'] as string) ?? 'Garage Door';
 
     // generate a unique id for the accessory this should be generated from
     // something globally unique, but constant, for example, the device serial
@@ -216,6 +220,7 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
       case 'opening': return this.Characteristic.CurrentDoorState.OPENING;
       case 'closing': return this.Characteristic.CurrentDoorState.CLOSING;
       case 'stopped': return this.Characteristic.CurrentDoorState.STOPPED;
+	  case 'venting': return this.Characteristic.CurrentDoorState.STOPPED;
       default: return -1;
     }
   }
@@ -223,7 +228,11 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
   mapTargetDoorState(value: string): number {
     switch (value) {
       case 'open': return this.Characteristic.TargetDoorState.OPEN;
-      case 'close': return this.Characteristic.TargetDoorState.CLOSED;
+      case 'close': 
+	  case 'closed': return this.Characteristic.TargetDoorState.CLOSED;
+	  case 'venting':
+	  case 'vent': return this.Characteristic.TargetDoorState.OPEN;
+	  case 'stop': return this.Characteristic.TargetDoorState.OPEN;
       default: return -1;
     }
   }
@@ -232,5 +241,14 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
     const payload = value === this.Characteristic.TargetDoorState.OPEN ? 'open' : 'close';
     this.log.debug('publishing target door state: ', payload, ' to topic: ', this.getTargetTopic());
     this.garageClient?.publishValue(this.getTargetTopic(), payload);
+  }
+  
+  getMqttStopMessage(): string {
+    return (this.config['mqttStopMessage'] as string) ?? 'stop';
+  }
+  
+  publishStopCommand() {
+    this.log.debug('publishing stop command to topic: ', this.getTargetTopic());
+    this.garageClient?.publishValue(this.getTargetTopic(), this.getMqttStopMessage());
   }
 }

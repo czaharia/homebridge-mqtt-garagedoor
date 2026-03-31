@@ -82,11 +82,23 @@ export class GarageDoorOpenerAccessory {
   // does not publish the new door state
   updateTargetDoorStateWithoutPublishing(value: CharacteristicValue) {
     this.garageState.updateTargetState(value as number);
+    this.targetDoorStateCharacteristic()?.updateValue(value);
     this.platform.log.debug('Update TargetDoorState ->', this.garageState.description());
   }
 
   // does publish the new door state
   setTargetDoorState(value: CharacteristicValue) {
+    const currentState = this.garageState.getCurrentState();
+    const isMoving = currentState === this.platform.Characteristic.CurrentDoorState.OPENING || 
+	  currentState === this.platform.Characteristic.CurrentDoorState.CLOSING;
+    if (isMoving) {
+      this.platform.log.debug('Door is moving, sending stop command');
+      this.platform.publishStopCommand();
+      // revert the target state back to avoid HomeKit getting confused
+      const previousTarget = this.garageState.getTargetState();
+      this.targetDoorStateCharacteristic()?.updateValue(previousTarget);
+      return;
+    }
     this.garageState.updateTargetState(value as number);
     this.platform.log.debug('Set TargetDoorState ->', this.garageState.description());
     this.platform.publishTargetDoorState(value as number);

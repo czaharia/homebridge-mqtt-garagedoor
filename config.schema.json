@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "GarageDoorOpenerHomebridgePlugin",
+  "pluginAlias": "HCPBridgeMqttHomebridgePlugin",
   "pluginType": "platform",
   "singular": true,
   "schema": {
@@ -11,6 +11,12 @@
         "required": true,
         "default": "GarageDoor"
       },
+	  "displayName": {
+	    "type": "string",
+	    "title": "Accessory Display Name",
+	    "placeholder": "Garage Door",
+	    "description": "Name shown in the Home app"
+	  },
       "mqttHost": {
         "type": "string",
         "title": "URL",
@@ -38,25 +44,31 @@
       "targetTopic": {
         "type": "string",
         "title": "TARGET door state topic",
-        "placeholder": "garage/door/target",
+        "placeholder": "hormann/hcpbridge/command/door",
         "description": "MQTT Topic to indicate the desired target door state."
       },
       "currentTopic": {
         "type": "string",
         "title": "CURRENT door state topic",
-        "placeholder": "garage/door/current",
+        "placeholder": "hormann/hcpbridge/state",
         "description": "MQTT Topic for the current door state"
       },
       "mqttOpenMessage": {
         "type": "string",
         "title": "OPEN message",
-        "placeholder": "0",
+        "placeholder": "open",
         "description": "MQTT message payload for the target door state 'open'"
       },
       "mqttCloseMessage": {
         "type": "string",
         "title": "CLOSE message",
-        "placeholder": "1",
+        "placeholder": "close",
+        "description": "MQTT message payload for the target door state 'close'"
+      },
+      "mqttStopMessage": {
+        "type": "string",
+        "title": "STOP message",
+        "placeholder": "stop",
         "description": "MQTT message payload for the target door state 'close'"
       }
     }
