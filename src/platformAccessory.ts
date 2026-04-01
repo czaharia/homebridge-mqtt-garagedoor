@@ -16,28 +16,19 @@ export class GarageDoorOpenerAccessory {
     
     this.garageState = state ?? new GarageState(this.platform.api, this.platform.log);
 
-    // set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'RFx Software Inc.')
       .setCharacteristic(this.platform.Characteristic.Model, 'GDC-1')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, '100001');
 
-    // get the LightBulb service if it exists, otherwise create a new LightBulb service
-    // you can create multiple services for each accessory
     this.service = this.accessory.getService(this.platform.Service.GarageDoorOpener)
         || this.accessory.addService(this.platform.Service.GarageDoorOpener);
 
-    // set the service name, this is what is displayed as the default name on the Home app
-    // in this example we are using the name we stored in the `accessory.context` in the `discoverDevices` method.
-    // this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.exampleDisplayName);
-
-    // register handlers for the TargetDoorState Characteristic
     const tds = this.service.getCharacteristic(this.platform.Characteristic.TargetDoorState);
     tds
       .onSet(this.setTargetDoorState.bind(this))
       .onGet(this.getTargetDoorState.bind(this));
 
-    // register handlers for the CurrentDoorState Characteristic
     const cds = this.service.getCharacteristic(this.platform.Characteristic.CurrentDoorState);
     cds
       .onSet(this.setCurrentDoorState.bind(this))
@@ -79,14 +70,12 @@ export class GarageDoorOpenerAccessory {
     this.platform.log.info('log update: ', value);
   }
 
-  // does not publish the new door state
   updateTargetDoorStateWithoutPublishing(value: CharacteristicValue) {
     this.garageState.updateTargetState(value as number);
     this.targetDoorStateCharacteristic()?.updateValue(value);
     this.platform.log.debug('Update TargetDoorState ->', this.garageState.description());
   }
 
-  // does publish the new door state
   setTargetDoorState(value: CharacteristicValue) {
     const currentState = this.garageState.getCurrentState();
     const isMoving = currentState === this.platform.Characteristic.CurrentDoorState.OPENING || 
@@ -94,7 +83,6 @@ export class GarageDoorOpenerAccessory {
     if (isMoving) {
       this.platform.log.debug('Door is moving, sending stop command');
       this.platform.publishStopCommand();
-      // revert the target state back to avoid HomeKit getting confused
       const previousTarget = this.garageState.getTargetState();
       this.targetDoorStateCharacteristic()?.updateValue(previousTarget);
       return;
