@@ -114,6 +114,12 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
         if (value >= 0) {
           this.garageAccessory?.setCurrentDoorState(value);
           this.log.debug('did update current state to: ', value);
+          if (stateString === 'open' || stateString === 'closed') {
+            const targetValue = stateString === 'open'
+              ? this.Characteristic.TargetDoorState.OPEN
+              : this.Characteristic.TargetDoorState.CLOSED;
+            this.garageAccessory?.updateTargetDoorStateWithoutPublishing(targetValue);
+          }
         } else {
           this.log.error('GetCurrent topic: unknown door state value ', value, ' for payload: ', stateString);
         }

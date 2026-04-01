@@ -2,7 +2,7 @@
   "private": false,
   "displayName": "Homebridge HCPBridgeMQTT",
   "name": "homebridge-garagedoor-hcpbridgemqtt",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "A Homebridge plugin for HCPBridgeMqtt (Hormann garage door controller)",
   "license": "Apache-2.0",
   "repository": {

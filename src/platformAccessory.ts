@@ -94,6 +94,9 @@ export class GarageDoorOpenerAccessory {
 
   getTargetDoorState(): CharacteristicValue {
     const state = this.garageState.getTargetState();
+    if (state < 0) {
+      return this.platform.Characteristic.TargetDoorState.CLOSED;
+    }
     this.platform.log.debug('Get TargetDoorState ->', state);
     return state;
   }
