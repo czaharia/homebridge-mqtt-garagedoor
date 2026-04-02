@@ -31,7 +31,6 @@ export class GarageDoorOpenerAccessory {
 
     const cds = this.service.getCharacteristic(this.platform.Characteristic.CurrentDoorState);
     cds
-      .onSet(this.setCurrentDoorState.bind(this))
       .onGet(this.getCurrentDoorState.bind(this));
 
 

@@ -1,4 +1,4 @@
-import { API, DynamicPlatformPlugin, Logging, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
+import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
 import { GarageDoorOpenerAccessory } from './platformAccessory.js';
@@ -13,7 +13,7 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
   private garageClient: GarageMQTT;
 
   constructor(
-    public readonly log: Logging,
+    public readonly log: Logger,
     public readonly config: PlatformConfig,
     public readonly api: API,
   ) {
