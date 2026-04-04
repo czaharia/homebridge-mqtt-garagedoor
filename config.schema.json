@@ -8,7 +8,6 @@
       "name": {
         "title": "Name",
         "type": "string",
-        "required": true,
         "default": "GarageDoor"
       },
       "displayName": {
@@ -45,23 +44,23 @@
       },
       "mqttUsername": {
         "type": "string",
-        "required": false,
         "title": "Username",
         "description": "MQTT Username (optional)"
       },
       "mqttPassword": {
         "type": "string",
-        "required": false,
         "title": "Password",
         "description": "MQTT Password (optional)"
       },
       "mqttClientID": {
         "type": "string",
         "title": "ClientID",
-        "required": false,
         "description": "MQTT Client ID (optional, default: HomeBridge)"
       }
-    }
+    },
+    "required": [
+      "name"
+    ]
   },
   "layout": [
     {
@@ -84,6 +83,6 @@
         "mqttPassword",
         "mqttClientID"
       ]
-    },
+    }
   ]
 }
