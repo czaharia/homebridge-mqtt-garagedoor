@@ -11,7 +11,8 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
   public readonly accessories: PlatformAccessory[] = [];
   private garageAccessory: GarageDoorOpenerAccessory | null;
   private garageClient: GarageMQTT;
-
+  private isOnline = false; // start offline until confirmed
+  
   constructor(
     public readonly log: Logger,
     public readonly config: PlatformConfig,
@@ -41,6 +42,10 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
     void this.mqttSubscription();
   }
 
+  getAvailabilityTopic(): string {
+    return (this.config['availabilityTopic'] as string) ?? 'hormann/hcpbridge/availability';
+  }
+  
   async cleanup() {
     await this.garageClient?.disconnect();
   }
@@ -82,7 +87,9 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
   }
 
   async mqttSubscription(): Promise<void> {
-    const subscription = await this.garageClient.addSubscription([this.getTargetTopic(), this.getCurrentTopic()]);
+    const subscription = await this.garageClient.addSubscription(
+	  [this.getTargetTopic(), this.getCurrentTopic(), this.getAvailabilityTopic()]);
+	
     this.log.debug('mqtt subscriptions: ', subscription);
     this.garageClient.onMessage(this.receiveMessage.bind(this));
   }
@@ -112,7 +119,7 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
         }
         const value = this.mapCurrentDoorState(stateString);
         if (value >= 0) {
-          this.garageAccessory?.setCurrentDoorState(value);
+          this.garageAccessory?.updateCurrentDoorState(value);
           this.log.debug('did update current state to: ', value);
           if (stateString === 'open' || stateString === 'closed') {
             const targetValue = stateString === 'open'
@@ -137,13 +144,22 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
         }
         break;
       }
+	  
+	  case this.getAvailabilityTopic():
+	    this.isOnline = stringValue === 'online';
+	    this.log.info('Device availability:', stringValue);
+	    break;
 
       default:
         this.log.debug('unhandled topic message: ', topic);
         break;
     }
   }
-
+  
+  getIsOnline(): boolean {
+    return this.isOnline;
+  }
+  
   initializeAccessory() {
     if (this.garageAccessory !== null) {
       this.log.debug('Accessory already initialized');

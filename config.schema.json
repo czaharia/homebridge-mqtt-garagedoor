@@ -15,13 +15,15 @@
 	    "type": "string",
 	    "title": "Accessory Display Name",
 	    "placeholder": "Garage Door",
+		"default": "Garage Door",
 	    "description": "Name shown in the Home app"
 	  },
       "mqttHost": {
         "type": "string",
         "title": "URL",
         "description": "MQTT broker URL default: mqtt://localhost:1883",
-        "placeholder": "mqtt://localhost:1883"
+        "placeholder": "mqtt://localhost:1883",
+		"default": "mqtt://localhost:1883"
       },
       "mqttUsername": {
         "type": "string",
@@ -45,30 +47,42 @@
         "type": "string",
         "title": "TARGET door state topic",
         "placeholder": "hormann/hcpbridge/command/door",
+		"default": "hormann/hcpbridge/command/door",
         "description": "MQTT Topic to indicate the desired target door state."
       },
       "currentTopic": {
         "type": "string",
         "title": "CURRENT door state topic",
         "placeholder": "hormann/hcpbridge/state",
+		"default": "hormann/hcpbridge/state",
         "description": "MQTT Topic for the current door state"
       },
+	  "availabilityTopic": {
+	    "type": "string",
+	    "title": "Availability Topic",
+	    "placeholder": "hormann/hcpbridge/availability",
+		"default": "hormann/hcpbridge/availability",
+	    "description": "MQTT LWT topic. Payload 'online'/'offline' marks device as available in HomeKit."
+	  },
       "mqttOpenMessage": {
         "type": "string",
         "title": "OPEN message",
         "placeholder": "open",
+		"default": "open",
         "description": "MQTT message payload for the target door state 'open'"
       },
       "mqttCloseMessage": {
         "type": "string",
         "title": "CLOSE message",
         "placeholder": "close",
+		"default": "close",
         "description": "MQTT message payload for the target door state 'close'"
       },
       "mqttStopMessage": {
         "type": "string",
         "title": "STOP message",
         "placeholder": "stop",
+		"default": "stop",
         "description": "MQTT message payload for the target door state 'close'"
       }
     }

@@ -5,11 +5,12 @@ import { GarageState } from './garagestate.js';
 export class GarageDoorOpenerAccessory {
   private service: Service;
   private garageState: GarageState;
-
+  
   constructor(
         private readonly platform: GarageDoorOpenerPlatform,
         private readonly accessory: PlatformAccessory,
         private readonly state: GarageState | null = null,
+		
   ) {
     
     this.platform.log.debug('constructing GarageDoorOpenerAccessory...');
@@ -57,6 +58,12 @@ export class GarageDoorOpenerAccessory {
     this.platform.log.debug('initial door states: ', this.garageState.description());
   }
 
+  private notReadyError() {
+    return new this.platform.api.hap.HapStatusError(
+      this.platform.api.hap.HAPStatus.SERVICE_COMMUNICATION_FAILURE,
+    );
+  }
+
   currentDoorStateCharacteristic(): Characteristic {
     return this.service.getCharacteristic(this.platform.Characteristic.CurrentDoorState);
   }
@@ -68,7 +75,13 @@ export class GarageDoorOpenerAccessory {
   handleLogUpdate(value: string) {
     this.platform.log.info('log update: ', value);
   }
-
+  
+  updateCurrentDoorState(value: number) {
+    this.garageState.updateCurrentState(value);
+    this.currentDoorStateCharacteristic().updateValue(value);
+    this.platform.log.debug('Update CurrentDoorState ->', this.garageState.description());
+  }
+  
   updateTargetDoorStateWithoutPublishing(value: CharacteristicValue) {
     this.garageState.updateTargetState(value as number);
     this.targetDoorStateCharacteristic()?.updateValue(value);
@@ -92,22 +105,22 @@ export class GarageDoorOpenerAccessory {
   }
 
   getTargetDoorState(): CharacteristicValue {
-    const state = this.garageState.getTargetState();
-    if (state < 0) {
-      return this.platform.Characteristic.TargetDoorState.CLOSED;
+    if (!this.platform.getIsOnline()) { 
+      throw this.notReadyError(); 
     }
-    this.platform.log.debug('Get TargetDoorState ->', state);
-    return state;
-  }
-
-  setCurrentDoorState(value: CharacteristicValue) {
-    this.garageState.updateCurrentState(value as number);
-    this.platform.log.debug('Set CurrentDoorState ->', this.garageState.description());
+    const state = this.garageState.getTargetState();
+    return state < 0 ? this.platform.Characteristic.TargetDoorState.CLOSED : state;
   }
 
   getCurrentDoorState(): CharacteristicValue {
+    if (!this.platform.getIsOnline()) { 
+      throw this.notReadyError(); 
+    }
     const state = this.garageState.getCurrentState();
-    this.platform.log.debug('Get CurrentDoorState ->', state);
-    return state;
+    return state < 0 ? this.platform.Characteristic.CurrentDoorState.CLOSED : state;
   }
+  
+
+  
+  
 }
