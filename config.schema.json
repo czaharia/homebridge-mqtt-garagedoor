@@ -11,25 +11,37 @@
         "required": true,
         "default": "GarageDoor"
       },
-	  "displayName": {
-	    "type": "string",
-	    "title": "Accessory Display Name",
-	    "placeholder": "Garage Door",
-		"default": "Garage Door",
-	    "description": "Name shown in the Home app"
-	  },
-	  "enableLamp": {
-	    "type": "boolean",
-	    "title": "Enable Lamp Accessory",
-	    "description": "Expose the garage lamp as a Lightbulb in HomeKit",
-	    "default": false
-	  },
+      "displayName": {
+        "type": "string",
+        "title": "Accessory Display Name",
+        "placeholder": "Garage Door",
+        "default": "Garage Door",
+        "description": "Name shown in the Home app"
+      },
+      "enableLamp": {
+        "type": "boolean",
+        "title": "Enable Lamp Accessory",
+        "description": "Expose the garage lamp as a Lightbulb in HomeKit",
+        "default": false
+      },
+      "enableVent": {
+        "type": "boolean",
+        "title": "Enable Vent Switch Accessory",
+        "description": "Expose a switch to control the venting position",
+        "default": false
+      },
+      "ventDisplayName": {
+        "type": "string",
+        "title": "Vent Switch Display Name",
+        "placeholder": "Garage Vent",
+        "description": "Name shown in the Home app for the vent switch tile"
+      },
       "mqttHost": {
         "type": "string",
         "title": "URL",
         "description": "MQTT broker URL default: mqtt://localhost:1883",
         "placeholder": "mqtt://localhost:1883",
-		"default": "mqtt://localhost:1883"
+        "default": "mqtt://localhost:1883"
       },
       "mqttUsername": {
         "type": "string",
@@ -48,56 +60,30 @@
         "title": "ClientID",
         "required": false,
         "description": "MQTT Client ID (optional, default: HomeBridge)"
-      },
-      "targetTopic": {
-        "type": "string",
-        "title": "TARGET door state topic",
-        "placeholder": "hormann/hcpbridge/command/door",
-		"default": "hormann/hcpbridge/command/door",
-        "description": "MQTT Topic to indicate the desired target door state."
-      },
-      "currentTopic": {
-        "type": "string",
-        "title": "CURRENT door state topic",
-        "placeholder": "hormann/hcpbridge/state",
-		"default": "hormann/hcpbridge/state",
-        "description": "MQTT Topic for the current door state"
-      },
-	  "availabilityTopic": {
-	    "type": "string",
-	    "title": "Availability Topic",
-	    "placeholder": "hormann/hcpbridge/availability",
-		"default": "hormann/hcpbridge/availability",
-	    "description": "MQTT LWT topic. Payload 'online'/'offline' marks device as available in HomeKit."
-	  },
-	  "lampCommandTopic": {
-	    "type": "string",
-	    "title": "Lamp Command Topic",
-	    "placeholder": "hormann/hcpbridge/command/lamp",
-		"default": "hormann/hcpbridge/command/lamp",
-	    "description": "MQTT topic to control the lamp (publishes true/false)"
-	  },
-      "mqttOpenMessage": {
-        "type": "string",
-        "title": "OPEN message",
-        "placeholder": "open",
-		"default": "open",
-        "description": "MQTT message payload for the target door state 'open'"
-      },
-      "mqttCloseMessage": {
-        "type": "string",
-        "title": "CLOSE message",
-        "placeholder": "close",
-		"default": "close",
-        "description": "MQTT message payload for the target door state 'close'"
-      },
-      "mqttStopMessage": {
-        "type": "string",
-        "title": "STOP message",
-        "placeholder": "stop",
-		"default": "stop",
-        "description": "MQTT message payload for the target door state 'close'"
       }
     }
-  }
+  },
+  "layout": [
+    {
+      "type": "fieldset",
+      "title": "General",
+      "items": [
+        "name",
+        "displayName",
+        "enableLamp",
+        "enableVent",
+        "ventDisplayName"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "MQTT Broker",
+      "items": [
+        "mqttHost",
+        "mqttUsername",
+        "mqttPassword",
+        "mqttClientID"
+      ]
+    },
+  ]
 }

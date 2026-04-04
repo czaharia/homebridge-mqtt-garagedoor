@@ -6,6 +6,7 @@ export class GarageDoorOpenerAccessory {
   private service: Service;
   private garageState: GarageState;
   private lampService: Service | null = null;
+  private ventService: Service | null = null;
   
   constructor(
         private readonly platform: GarageDoorOpenerPlatform,
@@ -35,6 +36,17 @@ export class GarageDoorOpenerAccessory {
         .onGet(this.getLampState.bind(this));
 
       this.platform.log.debug('Lamp service initialized');
+    }
+	
+    if (this.platform.isVentEnabled()) {
+      this.ventService = this.accessory.getService(this.platform.Service.Switch)
+        || this.accessory.addService(this.platform.Service.Switch, 'Garage Vent');
+
+      this.ventService.getCharacteristic(this.platform.Characteristic.On)
+        .onSet(this.setVentState.bind(this))
+        .onGet(this.getVentState.bind(this));
+
+      this.platform.log.debug('Vent switch service initialized');
     }
 
     const tds = this.service.getCharacteristic(this.platform.Characteristic.TargetDoorState);
@@ -156,7 +168,49 @@ export class GarageDoorOpenerAccessory {
     return state < 0 ? this.platform.Characteristic.CurrentDoorState.CLOSED : state;
   }
   
+  setVentState(value: CharacteristicValue) {
+    const turnOn = value as boolean;
 
+    if (turnOn) {
+      // only send vent command if door is currently closed
+      const currentState = this.garageState.getCurrentState();
+      const isClosed = currentState === this.platform.Characteristic.CurrentDoorState.CLOSED;
+      if (isClosed) {
+        this.platform.log.debug('Sending vent command (door is closed)');
+        this.platform.publishVentCommand();
+      } else {
+        this.platform.log.warn('Vent command ignored: door is not closed (state: ', currentState, ')');
+        // revert switch back to off — door is not in a state where vent makes sense
+        setTimeout(() => {
+          this.ventService?.getCharacteristic(this.platform.Characteristic.On).updateValue(false);
+        }, 500);
+      }
+    } else {
+      // only send close command if currently venting
+      if (this.platform.isCurrentlyVenting()) {
+        this.platform.log.debug('Sending close command (was venting)');
+        this.platform.publishTargetDoorState(this.platform.Characteristic.TargetDoorState.CLOSED);
+      } else {
+        this.platform.log.warn('Close from vent ignored: door is not venting');
+      }
+    }
+  }
+
+  getVentState(): CharacteristicValue {
+    if (!this.platform.getIsOnline()) {
+      throw this.notReadyError();
+    }
+    return this.platform.isCurrentlyVenting();
+  }
   
+  updateVentState(value: boolean) {
+    if (this.ventService === null) {
+      return;
+    }
+    this.ventService
+      .getCharacteristic(this.platform.Characteristic.On)
+      .updateValue(value);
+    this.platform.log.debug('Updated vent state ->', value);
+  }
   
 }

@@ -12,6 +12,10 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
   private garageAccessory: GarageDoorOpenerAccessory | null;
   private garageClient: GarageMQTT;
   private isOnline = false; // start offline until confirmed
+  private isVenting = false;
+  private currentDetailedState = '';
+  private discovery: HCPDiscovery = { ...defaultDiscovery };
+  private discoveryComplete = false;
   
   constructor(
     public readonly log: Logger,
@@ -38,10 +42,79 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
     this.log.debug('initializing...');
     await this.connectMQTTClient();
     this.log.debug('connected to client: ', this.garageClient.getClient());
+	await this.loadDiscovery();
     this.initializeAccessory();
     void this.mqttSubscription();
   }
 
+  async loadDiscovery(): Promise<void> {
+    const topics = [
+      'homeassistant/cover/hcpbridge/door/config',
+      'homeassistant/switch/hcpbridge/lamp/config',
+      'homeassistant/switch/hcpbridge/vent/config',
+    ];
+
+    return new Promise((resolve) => {
+      let received = 0;
+      const timeout = setTimeout(() => {
+        this.log.warn('Discovery timeout — using default topic config');
+        resolve();
+      }, 5000); // wait max 5 seconds for retained messages
+
+      this.garageClient.addSubscription(topics).then(() => {
+        this.garageClient.onMessage((topic, payload) => {
+          try {
+            const json = JSON.parse(payload.toString('ascii'));
+
+            if (topic.includes('/door/')) {
+              this.discovery.doorStateTopic    = json.state_topic    ?? this.discovery.doorStateTopic;
+              this.discovery.doorCommandTopic  = json.command_topic  ?? this.discovery.doorCommandTopic;
+              this.discovery.doorPayloadOpen   = json.payload_open   ?? this.discovery.doorPayloadOpen;
+              this.discovery.doorPayloadClose  = json.payload_close  ?? this.discovery.doorPayloadClose;
+              this.discovery.doorPayloadStop   = json.payload_stop   ?? this.discovery.doorPayloadStop;
+              // device info
+              if (json.device) {
+                this.discovery.manufacturer = json.device.manufacturer ?? this.discovery.manufacturer;
+                this.discovery.model        = json.device.model        ?? this.discovery.model;
+                this.discovery.swVersion    = json.device.sw_version   ?? this.discovery.swVersion;
+              }
+              if (json.availability_topic) {
+                this.discovery.availabilityTopic   = json.availability_topic;
+                this.discovery.payloadAvailable    = json.payload_available    ?? 'online';
+                this.discovery.payloadNotAvailable = json.payload_not_available ?? 'offline';
+              }
+            }
+
+            if (topic.includes('/lamp/')) {
+              this.discovery.lampCommandTopic = json.command_topic ?? this.discovery.lampCommandTopic;
+              this.discovery.lampPayloadOn    = json.payload_on    ?? this.discovery.lampPayloadOn;
+              this.discovery.lampPayloadOff   = json.payload_off   ?? this.discovery.lampPayloadOff;
+            }
+
+            if (topic.includes('/vent/')) {
+              this.discovery.ventCommandTopic = json.command_topic ?? this.discovery.ventCommandTopic;
+              this.discovery.ventPayloadOn    = json.payload_on    ?? this.discovery.ventPayloadOn;
+              this.discovery.ventPayloadOff   = json.payload_off   ?? this.discovery.ventPayloadOff;
+            }
+
+          } catch (e) {
+            this.log.warn('Failed to parse discovery payload for topic: ', topic);
+          }
+
+          received++;
+          if (received >= topics.length) {
+            clearTimeout(timeout);
+            this.discoveryComplete = true;
+            this.log.info('Discovery complete — firmware v' + this.discovery.swVersion);
+            // unsubscribe from discovery topics — no longer needed
+            void this.garageClient.removeSubscription(topics);
+            resolve();
+          }
+        });
+      });
+    });
+  }
+  
   isLampEnabled(): boolean {
     return (this.config['enableLamp'] as boolean) ?? false;
   }
@@ -54,6 +127,19 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
     const payload = value ? 'true' : 'false';
     this.log.debug('publishing lamp command: ', payload, ' to topic: ', this.getLampCommandTopic());
     this.garageClient?.publishValue(this.getLampCommandTopic(), payload);
+  }
+  
+  isVentEnabled(): boolean {
+    return (this.config['enableVent'] as boolean) ?? false;
+  }
+
+  getMqttVentMessage(): string {
+    return (this.config['mqttVentMessage'] as string) ?? 'vent';
+  }
+
+  publishVentCommand() {
+    this.log.debug('publishing vent command to topic: ', this.getTargetTopic());
+    this.garageClient?.publishValue(this.getTargetTopic(), this.getMqttVentMessage());
   }
   
   getAvailabilityTopic(): string {
@@ -124,6 +210,16 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
           };
           if (json.valid === true && typeof json.doorstate === 'string') {
             stateString = json.doorstate;
+
+            if (typeof json.detailedState === 'string') {
+              this.currentDetailedState = json.detailedState;
+              const venting = json.detailedState === 'venting';
+              if (venting !== this.isVenting) {
+                this.isVenting = venting;
+                this.garageAccessory?.updateVentState(venting);
+              }
+            }
+
             if (typeof json.lamp === 'string') {
               this.garageAccessory?.updateLampState(json.lamp === 'true');
             }
@@ -168,7 +264,7 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
       }
 	  
 	  case this.getAvailabilityTopic():
-	    this.isOnline = stringValue === 'online';
+	    this.isOnline = stringValue === this.discovery.payloadAvailable;
 	    this.log.info('Device availability:', stringValue);
 	    break;
 
@@ -211,6 +307,8 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
       case 'open': return this.Characteristic.CurrentDoorState.OPEN;
       case 'closed': return this.Characteristic.CurrentDoorState.CLOSED;
       case 'opening': return this.Characteristic.CurrentDoorState.OPENING;
+	  case 'opening v': return this.Characteristic.CurrentDoorState.OPENING;
+	  case 'opening h': return this.Characteristic.CurrentDoorState.OPENING;
       case 'closing': return this.Characteristic.CurrentDoorState.CLOSING;
       case 'stopped': return this.Characteristic.CurrentDoorState.STOPPED;
 	  case 'venting': return this.Characteristic.CurrentDoorState.STOPPED;
@@ -244,4 +342,13 @@ export class GarageDoorOpenerPlatform implements DynamicPlatformPlugin {
     this.log.debug('publishing stop command to topic: ', this.getTargetTopic());
     this.garageClient?.publishValue(this.getTargetTopic(), this.getMqttStopMessage());
   }
+  
+  getCurrentDetailedState(): string {
+    return this.currentDetailedState;
+  }
+
+  isCurrentlyVenting(): boolean {
+    return this.isVenting;
+  }
+  
 }
